@@ -440,10 +440,6 @@ class URL(urllib.parse._NetlocResultMixinStr, PurePath):
         assert not (query and kwargs)
         return self.with_components(query=query or kwargs)
 
-    def with_fragment(self, fragment):
-        """Return a new url with the fragment changed."""
-        return self.with_components(fragment=fragment)
-
     def add_query(self, query=None, **kwargs):
         """Return a new url with the query ammended."""
         assert not (query and kwargs)
@@ -461,9 +457,13 @@ class URL(urllib.parse._NetlocResultMixinStr, PurePath):
         elif query is not None:
             appendix = str(query)
         if appendix:
-            new = r'%s&%s' % (current, appendix) 
-            return self.with_components(new)
+            new = '%s&%s' % (current, appendix)
+            return self.with_components(query=new)
         return self.with_components()
+
+    def with_fragment(self, fragment):
+        """Return a new url with the fragment changed."""
+        return self.with_components(fragment=fragment)
 
     def resolve(self):
         """Resolve relative path of the path.
