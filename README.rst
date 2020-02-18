@@ -146,6 +146,11 @@ Replace query::
     >>> url.with_query(None)
     URL('https://username:password@secure.example.com:1234/path/to/file.ext#fragment')
 
+Ammend query::
+
+    >>> url.with_query(field1=x).add_query(field2=y)
+    URL('https://username:password@secure.example.com:1234/path/to/file.ext?field1=x&field2=y#fragment')
+ 
 Do HTTP requests::
 
     >>> url = URL('https://httpbin.org/get')
