@@ -105,9 +105,9 @@ class UrlTest(unittest.TestCase):
         self.assertIn('field4', ext_url.form)
 
         ## if initial query exists, it should include the both fields
-        query2 = {'field3': 'value3', 'field4': [1, 2, 3]}
+        ext_query = {'field3': 'value3', 'field4': [1, 2, 3]}
         ext_url = url.add_query({'field3': 'value3', 'field4': [1, 2, 3]})
-        self.assertEqual(ext_url.query, '%s&%s'%(query, ext_query))
+        self.assertEqual(ext_url.query, '%s&%s'%(query, 'field3=value3&field4=1&field4=2&field4=3'))
         self.assertSetEqual(set(ext_url.form), {'field1', 'field2', 'field3', 'field4'})
         self.assertIn('field1', ext_url.form)
         self.assertIn('field2', ext_url.form)
