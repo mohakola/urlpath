@@ -58,6 +58,7 @@ setup(
     license=meta['__license__'],
     install_requires=install_requires,
     extras_require={
-        'test': ['WebOb']
+        'test': ['WebOb', 'jmespath'],
+        'json': ['jmespath'],
     },
 )

@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 """Object-oriented URL from `urllib.parse` and `pathlib`
 """
-__version__ = '1.1.5'
+__version__ = '1.1.7'
 __author__ = __author_email__ = 'chrono-meter@gmx.net'
 __license__ = 'PSF'
 __url__ = 'https://github.com/chrono-meter/urlpath'
@@ -14,18 +14,18 @@ __classifiers__ = [
     'Intended Audience :: Developers',
     'License :: OSI Approved :: Python Software Foundation License',
     'Operating System :: OS Independent',
-    'Programming Language :: Python :: 3.3',
     'Programming Language :: Python :: 3.4',
     'Programming Language :: Python :: 3.5',
     'Programming Language :: Python :: 3.6',
+    'Programming Language :: Python :: 3.7',
+    'Programming Language :: Python :: 3.8',
     'Topic :: Internet :: WWW/HTTP',
     'Topic :: Software Development :: Libraries :: Python Modules',
 ]
 __all__ = ('URL',)
 
-import collections
+import collections.abc
 import functools
-import jmespath as _jm
 import re
 import urllib.parse
 from pathlib import _PosixFlavour, PurePath
@@ -37,6 +37,11 @@ except ImportError:
 import requests
 
 try:
+    import jmespath
+except ImportError:
+    jmespath = None
+
+try:
     import webob
 except ImportError:
     webob = None
@@ -45,7 +50,7 @@ missing = object()
 
 
 # http://stackoverflow.com/a/2704866/3622941
-class FrozenDict(collections.Mapping):
+class FrozenDict(collections.abc.Mapping):
     """Immutable dict object."""
     __slots__ = ('_d', '_hash')
 
@@ -303,7 +308,8 @@ class URL(urllib.parse._NetlocResultMixinStr, PurePath):
         begin = 1 if self._drv or self._root else 0
 
         return self._root \
-               + self._flavour.sep.join(urllib.parse.quote(i, safe=safe_pchars) for i in self._parts[begin:-1] + [self.name]) \
+               + self._flavour.sep.join(
+            urllib.parse.quote(i, safe=safe_pchars) for i in self._parts[begin:-1] + [self.name]) \
                + self.trailing_sep
 
     @property
@@ -404,13 +410,13 @@ class URL(urllib.parse._NetlocResultMixinStr, PurePath):
 
         if query is missing:
             query = self.query
-        elif isinstance(query, collections.Mapping):
+        elif isinstance(query, collections.abc.Mapping):
             query = urllib.parse.urlencode(sorted(query.items()), **self._urlencode_args)
         elif isinstance(query, str):
             # TODO: Is escaping '#' required?
             # query = query.replace('#', '%23')
             pass
-        elif isinstance(query, collections.Sequence):
+        elif isinstance(query, collections.abc.Sequence):
             query = urllib.parse.urlencode(query, **self._urlencode_args)
         elif query is not None:
             query = str(query)
@@ -453,9 +459,9 @@ class URL(urllib.parse._NetlocResultMixinStr, PurePath):
         if not current:
             return self.with_components(query=query)
         appendix = ''  # suppress lint warnings
-        if isinstance(query, collections.Mapping):
+        if isinstance(query, collections.abc.Mapping):
             appendix = urllib.parse.urlencode(sorted(query.items()), **self._urlencode_args)
-        elif isinstance(query, collections.Sequence):
+        elif isinstance(query, collections.abc.Sequence):
             appendix = urllib.parse.urlencode(query, **self._urlencode_args)
         elif query is not None:
             appendix = str(query)
@@ -463,33 +469,6 @@ class URL(urllib.parse._NetlocResultMixinStr, PurePath):
             new = '%s&%s' % (current, appendix)
             return self.with_components(query=new)
         return self.with_components()
-
-    def gettext(self, name='', query='', pattern='', overwrite=False):
-        "Runs a url with a specific query, amending query if necessary, and returns the resulting text"
-        q = query if overwrite else self.add_query(query).query if query else self.query
-        url = self.joinpath(name) if name else self
-        res = url.with_query(q).get()
-
-        if res:
-            if pattern:
-                if isinstance(pattern, str):  # patterns should be a compiled transformer like a regex object
-                    pattern = re.compile(pattern)
-                return list(filter(pattern.match, res.text.split('\n')))
-            return res.text
-        return res
-
-    def getjson(self, name='', query='', keys='', overwrite=False):
-        "Runs a url with a specific query, amending query if necessary, and returns the result after applying a transformer"
-        q = query if overwrite else self.add_query(query).query if query else self.query
-        url = self.joinpath(name) if name else self
-        res = url.with_query(q).get()
-
-        if res and keys:
-            if isinstance(keys, str):  # keys should be a compiled transformer like a jamespath object
-                keys = _jm.compile(keys)
-            return keys.search(res.json())
-
-        return res.json()
 
     def with_fragment(self, fragment):
         """Return a new url with the fragment changed."""
@@ -522,7 +501,7 @@ class URL(urllib.parse._NetlocResultMixinStr, PurePath):
         return JailedURL(self, root=self)
 
     def get(self, params=None, **kwargs):
-        """Sends a GET request.
+        r"""Sends a GET request.
 
         :param params: (optional) Dictionary or bytes to be sent in the query string for the :class:`Request`.
         :param \*\*kwargs: Optional arguments that ``request`` takes.
@@ -535,7 +514,7 @@ class URL(urllib.parse._NetlocResultMixinStr, PurePath):
         return response
 
     def options(self, **kwargs):
-        """Sends a OPTIONS request.
+        r"""Sends a OPTIONS request.
 
         :param \*\*kwargs: Optional arguments that ``request`` takes.
         :return: :class:`Response <Response>` object
@@ -546,7 +525,7 @@ class URL(urllib.parse._NetlocResultMixinStr, PurePath):
         return requests.options(url, **kwargs)
 
     def head(self, **kwargs):
-        """Sends a HEAD request.
+        r"""Sends a HEAD request.
 
         :param \*\*kwargs: Optional arguments that ``request`` takes.
         :return: :class:`Response <Response>` object
@@ -557,7 +536,7 @@ class URL(urllib.parse._NetlocResultMixinStr, PurePath):
         return requests.options(url, **kwargs)
 
     def post(self, data=None, json=None, **kwargs):
-        """Sends a POST request.
+        r"""Sends a POST request.
 
         :param data: (optional) Dictionary, bytes, or file-like object to send in the body of the :class:`Request`.
         :param json: (optional) json data to send in the body of the :class:`Request`.
@@ -570,7 +549,7 @@ class URL(urllib.parse._NetlocResultMixinStr, PurePath):
         return requests.post(url, data=data, json=json, **kwargs)
 
     def put(self, data=None, **kwargs):
-        """Sends a PUT request.
+        r"""Sends a PUT request.
 
         :param data: (optional) Dictionary, bytes, or file-like object to send in the body of the :class:`Request`.
         :param \*\*kwargs: Optional arguments that ``request`` takes.
@@ -582,7 +561,7 @@ class URL(urllib.parse._NetlocResultMixinStr, PurePath):
         return requests.put(url, data=data, **kwargs)
 
     def patch(self, data=None, **kwargs):
-        """Sends a PATCH request.
+        r"""Sends a PATCH request.
 
         :param data: (optional) Dictionary, bytes, or file-like object to send in the body of the :class:`Request`.
         :param \*\*kwargs: Optional arguments that ``request`` takes.
@@ -594,7 +573,7 @@ class URL(urllib.parse._NetlocResultMixinStr, PurePath):
         return requests.patch(url, data=data, **kwargs)
 
     def delete(self, **kwargs):
-        """Sends a DELETE request.
+        r"""Sends a DELETE request.
 
         :param \*\*kwargs: Optional arguments that ``request`` takes.
         :return: :class:`Response <Response>` object
@@ -603,6 +582,41 @@ class URL(urllib.parse._NetlocResultMixinStr, PurePath):
 
         url = str(self)
         return requests.delete(url, **kwargs)
+
+    def get_text(self, name='', query='', pattern='', overwrite=False):
+        """Runs a url with a specific query, amending query if necessary, and returns the resulting text"""
+        q = query if overwrite else self.add_query(query).query if query else self.query
+        url = self.joinpath(name) if name else self
+        res = url.with_query(q).get()
+
+        if res:
+            if pattern:
+                if isinstance(pattern, str):  # patterns should be a compiled transformer like a regex object
+                    pattern = re.compile(pattern)
+
+                return list(filter(pattern.match, res.text.split('\n')))
+
+            return res.text
+
+        return res
+
+    def get_json(self, name='', query='', keys='', overwrite=False):
+        """Runs a url with a specific query, amending query if necessary, and returns the result after applying a
+        transformer"""
+        q = query if overwrite else self.add_query(query).query if query else self.query
+        url = self.joinpath(name) if name else self
+        res = url.with_query(q).get()
+
+        if res and keys:
+            if not jmespath:
+                raise ImportError('jmespath is not installed')
+
+            if isinstance(keys, str):  # keys should be a compiled transformer like a jamespath object
+                keys = jmespath.compile(keys)
+
+            return keys.search(res.json())
+
+        return res.json()
 
 
 class JailedURL(URL):
