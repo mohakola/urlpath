@@ -38,6 +38,7 @@ import requests
 
 try:
     import jmespath
+    from jmespath.parser import ParsedResult as jParsedResult
 except ImportError:
     jmespath = None
 
@@ -608,13 +609,16 @@ class URL(urllib.parse._NetlocResultMixinStr, PurePath):
         res = url.with_query(q).get()
 
         if res and keys:
-            if not jmespath:
+           if not jmespath and not callable(keys): # keys should be a Jmespath query string, a Jmespath parser, or a callable like itemgetter('x') or jq 
                 raise ImportError('jmespath is not installed')
+           if isinstance(keys, str):  
+                searcher = jmespath.compile(keys).search
+           elif isinstance(keys, jParsedResult):
+                searcher = keys.search
+           elif callable(keys):
+                searcher = keys
 
-            if isinstance(keys, str):  # keys should be a compiled transformer like a jamespath object
-                keys = jmespath.compile(keys)
-
-            return keys.search(res.json())
+            return searcher(res.json())
 
         return res.json()
 
