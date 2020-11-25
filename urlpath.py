@@ -618,7 +618,7 @@ class URL(urllib.parse._NetlocResultMixinStr, PurePath):
            elif callable(keys):
                 searcher = keys
 
-            return searcher(res.json())
+           return searcher(res.json())
 
         return res.json()
 
